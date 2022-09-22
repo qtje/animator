@@ -1,5 +1,14 @@
 import time
 import math
+import sys
+
+import yaml
+
+try:
+    from yaml import CLoader as Loader, CDumper as Dumper
+except ImportError:
+    from yaml import Loader, Dumper
+
 
 import PIL
 
@@ -13,21 +22,9 @@ class CropBox():
         self.h = h
 
 class Actor():
-    xoff_base = -13#75
-    yoff_base = 80
 
-    walk_offsets = [
-    0,
-    9,
-    20,
-    30,
-    43,
-    57,
-    73,
-    ]
-
-    def __init__(self, uuid):
-        self.uuid = uuid
+    def __init__(self, config):
+        self.uuid = config.get('name', 'Anonymous')
 
         self.doc = GimpDocument('walkcyclemasked.xcf')
         self.frames = {}
@@ -37,11 +34,22 @@ class Actor():
         self.make_masks(force=True)
 
         self.crop = None
-        self.crop = CropBox(88,76,345,345)
+        if 'crop' in config.keys():
+            self.crop = CropBox(**config['crop'])
 
-        self.phase = 0
-        self.trail = 7
+        self.xoff_base = config['xoff']
+        self.yoff_base = config['yoff']
+
+        self.frame_xoffsets = config.get('frame_xoffsets', [0]*len(self.frames))
+        self.frame_yoffsets = config.get('frame_yoffsets', [0]*len(self.frames))
+
+        self.xspeed = config.get('xspeed', 1)
+        self.yspeed = config.get('yspeed', 1)
+
+        self.phase = config.get('phase', 0)
+        self.trail = config.get('trail', 1)
         self.decay = 0.5
+
 
     def load_doc(self):
         def get_frame_number(frame):
@@ -74,11 +82,17 @@ class Actor():
 
         return idx, cidx
 
-    def get_offsets(self, idx, cidx):
-        xoff = self.xoff_base+self.walk_offsets[idx]+cidx*self.walk_offsets[-1] - self.walk_offsets[self.phase]
-        yoff = self.yoff_base
+    def get_displacement(self, offsets, idx, cidx):
+        return offsets[idx] + cidx*offsets[-1] - offsets[self.phase]
 
-        return xoff, yoff
+    def get_offsets(self, idx, cidx):
+        xdisp = self.get_displacement(self.frame_xoffsets, idx, cidx)
+        xoff = self.xoff_base + xdisp*self.xspeed
+       
+        ydisp = self.get_displacement(self.frame_yoffsets, idx, cidx) 
+        yoff = self.yoff_base + ydisp*self.yspeed
+
+        return int(xoff), int(yoff)
 
     def get_boxes(self, xoff, yoff, w, h):
         crop = self.crop
@@ -109,7 +123,7 @@ class Actor():
         try:
             target.alpha_composite(frame, dest=dest, source=source)
         except ValueError as e:
-            print(e)
+            pass
  
         return target
  
@@ -117,6 +131,7 @@ class Actor():
     def stamp_outline(self, gidx, target):
 
         base_gidx = gidx
+        out_of_bounds = True
 
         for oidx in list(range(self.trail))[::-1]:
             gidx = base_gidx - oidx
@@ -136,8 +151,12 @@ class Actor():
 
             try:
                 target.alpha_composite(mask_eff, dest=dest, source=source)
+                out_of_bounds = False
             except ValueError as e:
-                print(e)
+                pass
+
+        if out_of_bounds:
+            print(f'{self.uuid} out of bounds on {base_gidx}')
 
         return target
 
@@ -152,9 +171,14 @@ class Actor():
                 pass
 
 class Scene():
-    def __init__(self):
-        self.doc = GimpDocument('page8_test.xcf')       
+    def __init__(self, config):
+        self.config = config
+
+        self.doc = GimpDocument(config['file'])
         self.load_doc()
+
+        self.length = config['length']
+        self.split = config.get('split', 0)
 
     def load_doc(self):
         for layer in self.doc.layers:
@@ -186,78 +210,31 @@ class Scene():
  
         return frame
 
+    def make_frames(self, actors):
+        frames = [self.stamp_frame(x, actors) for x in range(self.length)]
+        frames = [*frames[self.split:], *frames[:self.split]]
+        return frames
 
-scene = Scene()
+with open(sys.argv[1], 'r') as fp:
+    config = yaml.load(fp, Loader=Loader)
 
-#test = scene.stamp_frame(10, [actor])
-#test.show()
+scene = Scene(config['scene'])
 
 actors = []
 
-actor = Actor('walk1')
-actors.append(actor)
+for aconfig in config['actors']:
+    actors.append(Actor(aconfig))
 
-actor = Actor('walk2')
-actor.crop.x = 460
-actor.xoff_base += 373
-actor.phase=2
-actors.append(actor)
-
-actor = Actor('walk2')
-actor.crop.x = 828
-actor.xoff_base += 373*2
-actor.phase=4
-actors.append(actor)
-
-frames = [scene.stamp_frame(x, actors) for x in range(40)]
+frames = scene.make_frames(actors)
 
 frames[0].save('out.gif', save_all=True, append_images = frames[1:], duration=100, loop=0)
 
+#walking in place
+#walking in place
+#3-panel loop
+#walk across 3 panels
+#1-panel loop
+#walk across extended 3 panels
+#walk across extended 1 panel
 
-"""
-def do_animation():
-
-    ntop = output.nodeByName('top')
-    nbot = layers.nodeByName('bottom')
-    nbg = output.nodeByName('background')
-
-    nframe = output.nodeByName('frames')
-    bframe = output.nodeByName('bgframes')
-    bmask = output.nodeByName('bgmask')
-
-    nframe.enableAnimation()
-    bframe.enableAnimation()
-    bmask.enableAnimation()
-
-    actor = Actor('walk1')
-
-    actors = [actor]
-
-    #TODO ensure unique uuid's for actors
-
-    #TODO implement this
-    for actor in actors:
-        actor.generate_layers(output)
-
-    output.setFramesPerSecond(10)
-
-    kr.setActiveDocument(output)
-
-#    for gidx in range(96):
-    for gidx in range(10):
-
-        output.setCurrentTime(gidx)
-        output.setActiveNode(nframe)
-        kr.action('add_blank_frame').trigger()
-        output.setActiveNode(bframe)
-        kr.action('add_blank_frame').trigger()
-        output.setActiveNode(bmask)
-        kr.action('add_blank_frame').trigger()
-
-        #stamp top layer
-        actor.stamp_frame(output, gidx, nframe)
-
-        #stamp bottom layer
-        actor.stamp_outline(output, gidx, nbot, bframe, bmask)
-"""
 
