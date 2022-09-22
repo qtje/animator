@@ -2,6 +2,7 @@ scene:
     file: 'panel_template.xcf'
     split: 12
     length: 39
+    output: 'page9_raw'
 actors:
   - file: 'walkcyclemasked.xcf'
     name: 'left'

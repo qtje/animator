@@ -179,6 +179,9 @@ class Scene():
 
         self.length = config['length']
         self.split = config.get('split', 0)
+        self.outname = config.get('output', 'out')
+        if not '.gif' in self.outname:
+            self.outname = f'{self.outname}.gif'
 
     def load_doc(self):
         for layer in self.doc.layers:
@@ -215,8 +218,14 @@ class Scene():
         frames = [*frames[self.split:], *frames[:self.split]]
         return frames
 
+    def render(self, actors):
+        frames = self.make_frames(actors)
+        frames[0].save(self.outname, save_all=True, append_images = frames[1:], duration=100, loop=0)
+
+
 with open(sys.argv[1], 'r') as fp:
     config = yaml.load(fp, Loader=Loader)
+
 
 scene = Scene(config['scene'])
 
@@ -225,9 +234,7 @@ actors = []
 for aconfig in config['actors']:
     actors.append(Actor(aconfig))
 
-frames = scene.make_frames(actors)
-
-frames[0].save('out.gif', save_all=True, append_images = frames[1:], duration=100, loop=0)
+scene.render(actors)
 
 #walking in place
 #walking in place
