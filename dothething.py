@@ -209,7 +209,7 @@ actor.xoff_base += 373*2
 actor.phase=4
 actors.append(actor)
 
-frames = [scene.stamp_frame(x, actors) for x in range(37)]
+frames = [scene.stamp_frame(x, actors) for x in range(40)]
 
 frames[0].save('out.gif', save_all=True, append_images = frames[1:], duration=100, loop=0)
 
