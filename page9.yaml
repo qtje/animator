@@ -3,6 +3,12 @@ scene:
     split: 12
     length: 39
     output: 'page9_raw'
+    crop:
+        x: 76
+        y: 68
+        w: 1105
+        h: 361
+    resize: True
 actors:
   - file: 'walkcyclemasked.xcf'
     name: 'left'

@@ -14,6 +14,16 @@ import PIL
 
 from gimpformats.gimpXcfDocument import GimpDocument
 
+class DocumentCache():
+    def __init__(self):
+        self.cache = {}
+
+    def load_document(self, filename):
+        try:
+            return self.cache[filename]
+        except KeyError:
+            return GimpDocument(filename)
+
 class CropBox():
     def __init__(self, x, y, w, h):
         self.x = x
@@ -21,12 +31,15 @@ class CropBox():
         self.w = w
         self.h = h
 
+    def box(self):
+        return (self.x, self.y, self.x+self.w, self.y+self.h)
+
 class Actor():
 
-    def __init__(self, config):
+    def __init__(self, config, cache):
         self.uuid = config.get('name', 'Anonymous')
 
-        self.doc = GimpDocument('walkcyclemasked.xcf')
+        self.doc = cache.load_document('walkcyclemasked.xcf')
         self.frames = {}
         self.masks = {}
     
@@ -171,10 +184,10 @@ class Actor():
                 pass
 
 class Scene():
-    def __init__(self, config):
+    def __init__(self, config, cache):
         self.config = config
 
-        self.doc = GimpDocument(config['file'])
+        self.doc = cache.load_document(config['file'])
         self.load_doc()
 
         self.length = config['length']
@@ -182,6 +195,12 @@ class Scene():
         self.outname = config.get('output', 'out')
         if not '.gif' in self.outname:
             self.outname = f'{self.outname}.gif'
+
+        self.crop = None
+        if 'crop' in config.keys():
+            self.crop = CropBox(**config['crop'])
+
+        self.resize = config.get('resize', False)
 
     def load_doc(self):
         for layer in self.doc.layers:
@@ -210,6 +229,14 @@ class Scene():
             actor.stamp_frame(idx, frame)
 
         frame.alpha_composite(self.top)
+
+        if self.crop:
+            frame = frame.crop(box=self.crop.box())
+
+        if self.resize:
+            w,h = frame.size
+            s = 800/w
+            frame = frame.resize((int(w*s), int(h*s)))
  
         return frame
 
@@ -226,13 +253,18 @@ class Scene():
 with open(sys.argv[1], 'r') as fp:
     config = yaml.load(fp, Loader=Loader)
 
+doc_cache = DocumentCache()
 
-scene = Scene(config['scene'])
+print(f'Loading Scene')
 
+scene = Scene(config['scene'], doc_cache)
+
+print(f'Loading actors')
 actors = []
-
 for aconfig in config['actors']:
-    actors.append(Actor(aconfig))
+    actors.append(Actor(aconfig, doc_cache))
+
+print(f'Rendering')
 
 scene.render(actors)
 
