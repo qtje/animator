@@ -184,6 +184,8 @@ class Actor():
                 pass
 
 class Scene():
+    outdir = 'outputs'
+
     def __init__(self, config, cache):
         self.config = config
 
@@ -193,15 +195,17 @@ class Scene():
         self.first = config.get('first_frame', 0)
         self.length = config['length']
         self.split = config.get('split', 0)
-        self.outname = os.path.join('outputs', config.get('output', 'out'))
-        if not '.gif' in self.outname:
-            self.outname = f'{self.outname}.gif'
+        self.outname = config.get('output', 'out')
+        if '.gif' in self.outname:
+            self.outname = self.outname.replace('.gif','')
 
         self.crop = None
         if 'crop' in config.keys():
             self.crop = CropBox(**config['crop'])
 
         self.resize = config.get('resize', False)
+
+        self.preview = config.get('preview', False)
 
     def load_doc(self):
         for layer in self.doc.layers:
@@ -248,10 +252,24 @@ class Scene():
         frames = [*frames[self.split:], *frames[self.first:self.split]]
         return frames, first, last
 
+    def outfile(self, suffix=''):
+        return os.path.join(self.outdir, f'{self.outname}{suffix}.gif')
+
     def render(self, actors):
+
         frames, first, last = self.make_frames(actors)
-#        first.save(self.outname)
-        frames[0].save(self.outname, save_all=True, append_images = frames[1:], duration=100, loop=0)
+
+        firstout = self.outfile('_first')
+        first.save(firstout)
+        lastout = self.outfile('_last')
+        last.save(lastout)
+
+        if self.preview:
+            first.show()
+            last.show()
+
+        outname = self.outfile()
+        frames[0].save(outname, save_all=True, append_images = frames[1:], duration=100, loop=0)
 
 
 with open(sys.argv[1], 'r') as fp:
