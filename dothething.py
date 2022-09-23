@@ -190,6 +190,7 @@ class Scene():
         self.doc = cache.load_document(config['file'])
         self.load_doc()
 
+        self.first = config.get('first_frame', 0)
         self.length = config['length']
         self.split = config.get('split', 0)
         self.outname = os.path.join('outputs', config.get('output', 'out'))
@@ -242,11 +243,14 @@ class Scene():
 
     def make_frames(self, actors):
         frames = [self.stamp_frame(x, actors) for x in range(self.length)]
-        frames = [*frames[self.split:], *frames[:self.split]]
-        return frames
+        first = frames[self.first]
+        last = frames[-1]
+        frames = [*frames[self.split:], *frames[self.first:self.split]]
+        return frames, first, last
 
     def render(self, actors):
-        frames = self.make_frames(actors)
+        frames, first, last = self.make_frames(actors)
+#        first.save(self.outname)
         frames[0].save(self.outname, save_all=True, append_images = frames[1:], duration=100, loop=0)
 
 

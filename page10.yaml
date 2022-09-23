@@ -1,0 +1,26 @@
+scene:
+    file: 'inputs/panel_template.xcf'
+    split: 12
+    length: 99
+    first_frame: 3
+    output: 'page10'
+    crop:
+        x: 75
+        y: 68
+        w: 1106
+        h: 361
+    resize: True
+actors:
+  - file: 'inputs/walkcyclemasked.xcf'
+    name: 'left'
+    xoff: -43
+    yoff: 81 
+    frame_xoffsets: [0,9,20,30,43,57,73]
+    phase: 0 
+    trail: 1
+    crop:
+        x: 91
+        y: 81
+        w: 1069
+        h: 3334
+ 
