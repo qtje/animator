@@ -1,6 +1,6 @@
 import time
 import math
-import sys
+import sys, os
 
 import yaml
 
@@ -39,7 +39,7 @@ class Actor():
     def __init__(self, config, cache):
         self.uuid = config.get('name', 'Anonymous')
 
-        self.doc = cache.load_document('walkcyclemasked.xcf')
+        self.doc = cache.load_document(config['file'])
         self.frames = {}
         self.masks = {}
     
@@ -192,7 +192,7 @@ class Scene():
 
         self.length = config['length']
         self.split = config.get('split', 0)
-        self.outname = config.get('output', 'out')
+        self.outname = os.path.join('outputs', config.get('output', 'out'))
         if not '.gif' in self.outname:
             self.outname = f'{self.outname}.gif'
 

@@ -1,8 +1,8 @@
 scene:
-    file: 'panel_template.xcf'
+    file: 'inputs/panel_template.xcf'
     split: 12
     length: 39
-    output: 'page9_raw'
+    output: 'page9'
     crop:
         x: 76
         y: 68
@@ -10,7 +10,7 @@ scene:
         h: 361
     resize: True
 actors:
-  - file: 'walkcyclemasked.xcf'
+  - file: 'inputs/walkcyclemasked.xcf'
     name: 'left'
     xoff: -43
     yoff: 81 
@@ -22,7 +22,7 @@ actors:
         y: 76
         w: 345
         h: 345
-  - file: 'walkcyclemasked.xcf'
+  - file: 'inputs/walkcyclemasked.xcf'
     name: 'middle'
     xoff: 330
     yoff: 81 
@@ -34,7 +34,7 @@ actors:
         y: 76
         w: 345
         h: 345
-  - file: 'walkcyclemasked.xcf'
+  - file: 'inputs/walkcyclemasked.xcf'
     name: 'right'
     xoff: 703
     yoff: 81 
